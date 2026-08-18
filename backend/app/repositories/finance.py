@@ -110,14 +110,18 @@ class FinanceRepository:
         self.session.delete(model)
 
     def list_recurrences(self, user_id: uuid.UUID) -> list[Recurrence]:
-        return list(self.session.scalars(select(Recurrence).where(
-            Recurrence.user_id == user_id, Recurrence.is_active.is_(True)
-        ).order_by(Recurrence.next_run_at)))
+        return list(
+            self.session.scalars(
+                select(Recurrence)
+                .where(Recurrence.user_id == user_id, Recurrence.is_active.is_(True))
+                .order_by(Recurrence.next_run_at)
+            )
+        )
 
     def get_recurrence(self, user_id: uuid.UUID, recurrence_id: uuid.UUID) -> Recurrence | None:
-        return self.session.scalar(select(Recurrence).where(
-            Recurrence.id == recurrence_id, Recurrence.user_id == user_id
-        ))
+        return self.session.scalar(
+            select(Recurrence).where(Recurrence.id == recurrence_id, Recurrence.user_id == user_id)
+        )
 
     def commit(self) -> None:
         self.session.commit()

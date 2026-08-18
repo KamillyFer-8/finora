@@ -161,9 +161,7 @@ def list_recurrences(session: SessionDep, user: CurrentUser) -> list[RecurrenceR
     return [RecurrenceResponse.model_validate(item) for item in items]
 
 
-@recurrences_router.post(
-    "", response_model=RecurrenceResponse, status_code=status.HTTP_201_CREATED
-)
+@recurrences_router.post("", response_model=RecurrenceResponse, status_code=status.HTTP_201_CREATED)
 def create_recurrence(
     payload: RecurrenceCreate, session: SessionDep, user: CurrentUser
 ) -> RecurrenceResponse:

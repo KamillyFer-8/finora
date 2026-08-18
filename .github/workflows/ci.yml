@@ -7,6 +7,24 @@ on:
 jobs:
   frontend:
     runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql+psycopg://finora:finora@localhost:5432/finora
+      JWT_SECRET_KEY: ci-only-secret-with-at-least-32-characters
+      CORS_ORIGINS: http://localhost:3000
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: finora
+          POSTGRES_PASSWORD: finora
+          POSTGRES_DB: finora
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U finora -d finora"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: frontend
@@ -17,6 +35,24 @@ jobs:
           node-version: 22
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: Preparar API para testes E2E
+        run: |
+          pip install -e ../backend
+          cd ../backend
+          alembic upgrade head
+          nohup uvicorn app.main:app --host 127.0.0.1 --port 8000 > /tmp/finora-api.log 2>&1 &
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:8000/api/v1/health; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/finora-api.log
+          exit 1
       - run: npm ci
       - run: npm run lint
       - run: npm run type-check
