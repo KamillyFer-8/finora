@@ -1,0 +1,39 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { Download } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { financeApi } from "@/features/finance/api";
+
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const today = new Date();
+const initialEnd = today.toISOString().slice(0, 10);
+const initialStart = new Date(today.getFullYear(), today.getMonth() - 5, 1).toISOString().slice(0, 10);
+const tooltipStyle = { background: "#16191f", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12 };
+
+export function ReportsView() {
+  const [start, setStart] = useState(initialStart);
+  const [end, setEnd] = useState(initialEnd);
+  const params = useMemo(() => new URLSearchParams({ start_date: start, end_date: end }), [start, end]);
+  const report = useQuery({ queryKey: ["report", "analytics", params.toString()], queryFn: () => financeApi.report(params), enabled: Boolean(start && end) });
+  async function download() {
+    const response = await financeApi.exportReport(params);
+    const url = URL.createObjectURL(response.data);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `finora-${start}-${end}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+  if (report.isError) return <Card className="p-8 text-danger">Não foi possível gerar o relatório para este período.</Card>;
+  const data = report.data;
+  const cash = data?.cash_flow.map((item) => ({ ...item, income: Number(item.income), expense: Number(item.expense), balance: Number(item.balance) })) ?? [];
+  const netWorth = data?.net_worth.map((item) => ({ ...item, balance: Number(item.balance) })) ?? [];
+  const categories = data?.categories.map((item) => ({ ...item, amount: Number(item.amount) })) ?? [];
+  const accounts = data?.accounts.map((item) => ({ ...item, balance: Number(item.balance) })) ?? [];
+  return <><header className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-sm text-primary">Análise</p><h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl font-semibold">Relatórios</h1><p className="mt-2 text-muted">Entenda padrões, evolução e distribuição do seu dinheiro.</p></div><Button onClick={download} disabled={!data}><Download className="size-4" />Exportar CSV</Button></header><Card className="mt-8 p-5"><div className="grid gap-4 sm:grid-cols-2 lg:max-w-2xl"><Input label="Data inicial" type="date" value={start} onChange={(e) => setStart(e.target.value)} /><Input label="Data final" type="date" value={end} onChange={(e) => setEnd(e.target.value)} /></div></Card>{report.isLoading || !data ? <div className="mt-5 grid gap-5 lg:grid-cols-2"><div className="h-80 animate-pulse rounded-card bg-white/5"/><div className="h-80 animate-pulse rounded-card bg-white/5"/></div> : <><section className="mt-5 grid gap-5 lg:grid-cols-2"><Card className="p-6"><h2 className="text-lg font-semibold">Receitas vs despesas</h2><p className="mt-1 text-sm text-muted">Fluxo de caixa no período</p><div className="mt-6 h-72"><ResponsiveContainer><BarChart data={cash}><CartesianGrid stroke="rgba(255,255,255,.06)" vertical={false}/><XAxis dataKey="label" stroke="#9BA1AA" fontSize={11} axisLine={false} tickLine={false}/><YAxis stroke="#9BA1AA" fontSize={11} axisLine={false} tickLine={false}/><Tooltip contentStyle={tooltipStyle} formatter={(value) => money.format(Number(value))}/><Legend/><Bar dataKey="income" name="Receitas" fill="#B7FF2A" radius={[5,5,0,0]}/><Bar dataKey="expense" name="Despesas" fill="#FF5D6C" radius={[5,5,0,0]}/></BarChart></ResponsiveContainer></div></Card><Card className="p-6"><h2 className="text-lg font-semibold">Evolução patrimonial</h2><p className="mt-1 text-sm text-muted">Patrimônio líquido estimado</p><div className="mt-6 h-72"><ResponsiveContainer><LineChart data={netWorth}><CartesianGrid stroke="rgba(255,255,255,.06)" vertical={false}/><XAxis dataKey="label" stroke="#9BA1AA" fontSize={11} axisLine={false} tickLine={false}/><YAxis stroke="#9BA1AA" fontSize={11} axisLine={false} tickLine={false}/><Tooltip contentStyle={tooltipStyle} formatter={(value) => money.format(Number(value))}/><Line type="monotone" dataKey="balance" name="Patrimônio" stroke="#6BA8FF" strokeWidth={3} dot={false}/></LineChart></ResponsiveContainer></div></Card><Card className="p-6"><h2 className="text-lg font-semibold">Despesas por categoria</h2><p className="mt-1 text-sm text-muted">Onde seus gastos se concentram</p><div className="mt-6 h-72"><ResponsiveContainer><PieChart><Pie data={categories} dataKey="amount" nameKey="name" innerRadius={65} outerRadius={100} paddingAngle={3}>{categories.map((item) => <Cell key={item.name} fill={item.color}/>)}</Pie><Tooltip contentStyle={tooltipStyle} formatter={(value) => money.format(Number(value))}/><Legend/></PieChart></ResponsiveContainer></div></Card><Card className="p-6"><h2 className="text-lg font-semibold">Distribuição por contas</h2><p className="mt-1 text-sm text-muted">Saldo atual por instituição</p><div className="mt-6 h-72"><ResponsiveContainer><BarChart data={accounts} layout="vertical"><CartesianGrid stroke="rgba(255,255,255,.06)" horizontal={false}/><XAxis type="number" stroke="#9BA1AA" fontSize={11} axisLine={false} tickLine={false}/><YAxis type="category" dataKey="name" stroke="#9BA1AA" width={90} fontSize={11} axisLine={false} tickLine={false}/><Tooltip contentStyle={tooltipStyle} formatter={(value) => money.format(Number(value))}/><Bar dataKey="balance" name="Saldo" fill="#B7FF2A" radius={[0,5,5,0]}/></BarChart></ResponsiveContainer></div></Card></section><section className="mt-5 grid gap-5 xl:grid-cols-3"><Card className="p-6"><h2 className="font-semibold">Cartões</h2><div className="mt-4 grid gap-4">{data.cards.map((item) => <div key={item.id}><div className="flex justify-between text-sm"><span>{item.name}</span><span className="text-muted">{money.format(Number(item.used))}</span></div><div className="mt-2 h-1.5 rounded-full bg-white/10"><div className="h-full rounded-full bg-info" style={{ width: `${Math.min(100, Number(item.used) / Number(item.limit) * 100)}%` }}/></div></div>)}{!data.cards.length ? <p className="text-sm text-muted">Sem cartões.</p> : null}</div></Card><Card className="p-6"><h2 className="font-semibold">Metas</h2><div className="mt-4 grid gap-4">{data.goals.map((item) => <div key={item.id}><div className="flex justify-between text-sm"><span>{item.name}</span><span className="text-muted">{item.percentage.toFixed(0)}%</span></div><div className="mt-2 h-1.5 rounded-full bg-white/10"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, item.percentage)}%` }}/></div></div>)}{!data.goals.length ? <p className="text-sm text-muted">Sem metas.</p> : null}</div></Card><Card className="p-6"><h2 className="font-semibold">Orçamentos</h2><div className="mt-4 grid gap-4">{data.budgets.map((item) => <div key={item.id}><div className="flex justify-between text-sm"><span>{item.name}</span><span className={item.percentage >= 100 ? "text-danger" : item.percentage >= 80 ? "text-warning" : "text-muted"}>{item.percentage.toFixed(0)}%</span></div><div className="mt-2 h-1.5 rounded-full bg-white/10"><div className={`h-full rounded-full ${item.percentage >= 100 ? "bg-danger" : item.percentage >= 80 ? "bg-warning" : "bg-primary"}`} style={{ width: `${Math.min(100, item.percentage)}%` }}/></div></div>)}{!data.budgets.length ? <p className="text-sm text-muted">Sem orçamentos.</p> : null}</div></Card></section></>}</>;
+}

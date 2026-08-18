@@ -1,0 +1,11 @@
+"use client";
+import { useState } from "react";
+import { Bell, Database, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+
+export function SettingsView() {
+  const [notifications, setNotifications] = useState(true); const [currency, setCurrency] = useState("BRL"); const [saved, setSaved] = useState(false);
+  function save() { window.localStorage.setItem("finora-preferences", JSON.stringify({ notifications, currency, version: 1 })); setSaved(true); }
+  return <><header><p className="text-sm text-primary">Preferências</p><h1 className="mt-2 text-4xl font-semibold">Configurações</h1><p className="mt-2 text-muted">Personalize sua experiência no Finora.</p></header><div className="mt-8 grid gap-5 lg:grid-cols-2"><Card className="p-6"><Bell className="size-5 text-primary" /><h2 className="mt-4 text-lg font-semibold">Notificações</h2><label className="mt-5 flex items-center justify-between gap-4 text-sm"><span>Exibir alertas financeiros</span><input type="checkbox" checked={notifications} onChange={(event) => setNotifications(event.target.checked)} className="size-5 accent-lime-400" /></label></Card><Card className="p-6"><Database className="size-5 text-primary" /><h2 className="mt-4 text-lg font-semibold">Moeda principal</h2><select aria-label="Moeda principal" value={currency} onChange={(event) => setCurrency(event.target.value)} className="mt-5 min-h-12 w-full rounded-xl border border-white/10 bg-[#16191f] px-4"><option value="BRL">Real brasileiro (BRL)</option><option value="USD">Dólar americano (USD)</option><option value="EUR">Euro (EUR)</option></select></Card><Card className="p-6 lg:col-span-2"><ShieldCheck className="size-5 text-primary" /><h2 className="mt-4 text-lg font-semibold">Privacidade e dados</h2><p className="mt-2 text-sm text-muted">Seus dados financeiros permanecem no banco configurado para o projeto. Comprovantes usam o armazenamento local desacoplado.</p></Card></div><div className="mt-6 flex items-center gap-4"><Button onClick={save}>Salvar preferências</Button>{saved ? <span role="status" className="text-sm text-primary">Preferências salvas.</span> : null}</div></>;
+}

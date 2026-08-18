@@ -1,0 +1,7 @@
+"use client";
+import { useQuery } from "@tanstack/react-query";
+import { Card } from "@/components/ui/card";
+import { ErrorState, Skeleton } from "@/components/ui/feedback";
+import { apiClient } from "@/lib/api/client";
+type User = { id: string; name: string; email: string; created_at: string };
+export function ProfileView() { const user = useQuery({ queryKey: ["me"], queryFn: () => apiClient.get<User>("/auth/me").then(({ data }) => data) }); if (user.isLoading) return <Skeleton />; if (user.isError) return <ErrorState retry={() => user.refetch()}>Não foi possível carregar o perfil.</ErrorState>; return <><header><p className="text-sm text-primary">Sua conta</p><h1 className="mt-2 text-4xl font-semibold">Perfil</h1></header><Card className="mt-8 max-w-2xl p-7"><div className="grid size-16 place-items-center rounded-full bg-primary/15 text-2xl font-bold text-primary">{user.data?.name.slice(0, 1).toUpperCase()}</div><dl className="mt-7 grid gap-5 sm:grid-cols-2"><div><dt className="text-xs uppercase tracking-wider text-muted">Nome</dt><dd className="mt-1 font-medium">{user.data?.name}</dd></div><div><dt className="text-xs uppercase tracking-wider text-muted">E-mail</dt><dd className="mt-1 font-medium">{user.data?.email}</dd></div><div><dt className="text-xs uppercase tracking-wider text-muted">Membro desde</dt><dd className="mt-1 font-medium">{user.data ? new Date(user.data.created_at).toLocaleDateString("pt-BR") : "—"}</dd></div></dl></Card></>; }

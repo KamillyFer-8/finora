@@ -1,0 +1,25 @@
+name: Funcionalidade
+description: Planejar uma entrega do Finora
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objetivo
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      placeholder: "- [ ] Critério verificável"
+    validations:
+      required: true
+  - type: dropdown
+    id: sprint
+    attributes:
+      label: Sprint
+      options: [Backlog, Sprint atual, Próxima sprint]
+    validations:
+      required: true

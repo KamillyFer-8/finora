@@ -1,0 +1,17 @@
+export type Account = { id: string; name: string; institution: string; type: string; balance: string; currency: string; is_active: boolean };
+export type Category = { id: string; name: string; type: "income" | "expense"; color: string; icon: string };
+export type Transaction = { id: string; description: string; amount: string; type: "income" | "expense"; account_id: string; category_id: string | null; date: string; status: "pending" | "completed" | "cancelled"; notes: string | null };
+export type TransactionPage = { items: Transaction[]; total: number; page: number; page_size: number };
+export type Card = { id: string; name: string; last_four: string; credit_limit: string; used_limit: string; available_limit: string; current_invoice: string; closing_day: number; due_day: number; color: string };
+export type InvoiceInstallment = { id: string; purchase_id: string; number: number; amount: string; description: string; installment_count: number };
+export type Invoice = { id: string; card_id: string; card_name: string; reference_month: string; closing_date: string; due_date: string; total: string; status: "open" | "closed" | "paid" | "overdue"; installments: InvoiceInstallment[] };
+export type Budget = { id: string; category_id: string; category_name: string; category_color: string; period_start: string; period_end: string; limit_amount: string; spent_amount: string; remaining_amount: string; percentage: number; alert_level: "normal" | "warning" | "exceeded" };
+export type GoalContribution = { id: string; goal_id: string; account_id: string; amount: string; contributed_at: string };
+export type Goal = { id: string; name: string; target_amount: string; current_amount: string; remaining_amount: string; percentage: number; deadline: string | null; forecast_date: string | null; status: "active" | "completed"; contributions: GoalContribution[] };
+export type PlanningAlert = { id: string; level: "warning" | "danger"; message: string; budget_id: string };
+export type ReportMetric = { value: string; change_percentage: number };
+export type CashFlowPoint = { label: string; date: string; income: string; expense: string; balance: string };
+export type ReportCategory = { category_id: string | null; name: string; color: string; amount: string; percentage: number };
+export type DashboardReport = { period_start: string; period_end: string; total_balance: ReportMetric; income: ReportMetric; expenses: ReportMetric; savings: ReportMetric; savings_rate: number; budget_percentage: number; cash_flow: CashFlowPoint[]; net_worth: CashFlowPoint[]; categories: ReportCategory[]; accounts: { id: string; name: string; institution: string; balance: string }[]; cards: { id: string; name: string; used: string; limit: string }[]; goals: { id: string; name: string; current: string; target: string; percentage: number }[]; budgets: { id: string; name: string; spent: string; limit: string; percentage: number }[]; recent_transactions: { id: string; description: string; type: string; amount: string; date: string; status: string; category: string }[]; alerts: string[] };
+export type Attachment = { id: string; transaction_id: string | null; original_name: string; url: string; mime_type: string; size: number; created_at: string };
+export type Recurrence = { id: string; description: string; amount: string; type: "income" | "expense"; account_id: string; category_id: string | null; frequency: "weekly" | "monthly" | "yearly"; interval: number; next_run_at: string; end_date: string | null; notes: string | null; is_active: boolean };

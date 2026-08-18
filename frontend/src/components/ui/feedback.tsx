@@ -1,0 +1,4 @@
+import type { ReactNode } from "react"; import { Button } from "./button"; import { Card } from "./card";
+export function Skeleton({ className = "h-36" }: { className?: string }) { return <div aria-label="Carregando" className={`animate-pulse rounded-card bg-white/5 ${className}`} />; }
+export function EmptyState({ title, description }: { title: string; description: string }) { return <Card className="p-10 text-center"><strong>{title}</strong><p className="mt-2 text-sm text-muted">{description}</p></Card>; }
+export function ErrorState({ retry, children = "Não foi possível carregar." }: { retry?: () => void; children?: ReactNode }) { return <Card className="p-8 text-center"><p role="alert" className="text-danger">{children}</p>{retry ? <Button className="mt-4" variant="secondary" onClick={retry}>Tentar novamente</Button> : null}</Card>; }

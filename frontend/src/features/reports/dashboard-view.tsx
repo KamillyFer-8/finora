@@ -1,0 +1,41 @@
+"use client";
+
+import { useQuery } from "@tanstack/react-query";
+import { ArrowDownRight, ArrowUpRight, Bell, CreditCard, PiggyBank, TrendingDown, TrendingUp, Wallet } from "lucide-react";
+import { useMemo } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Card } from "@/components/ui/card";
+import { financeApi } from "@/features/finance/api";
+import type { DashboardReport, ReportMetric } from "@/features/finance/types";
+import type { RootState } from "@/store";
+import { setPeriod } from "@/store/preferences-slice";
+
+const money = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+const periods = [{ key: "7d", label: "7 dias", days: 7 }, { key: "30d", label: "30 dias", days: 30 }, { key: "3m", label: "3 meses", days: 90 }, { key: "6m", label: "6 meses", days: 180 }, { key: "1y", label: "1 ano", days: 365 }] as const;
+
+function periodParams(period: string) {
+  const days = periods.find((item) => item.key === period)?.days ?? 30;
+  const end = new Date();
+  const start = new Date();
+  start.setDate(end.getDate() - days + 1);
+  return new URLSearchParams({ start_date: start.toISOString().slice(0, 10), end_date: end.toISOString().slice(0, 10) });
+}
+
+function StatCard({ title, metric, icon: Icon, inverse = false }: { title: string; metric: ReportMetric; icon: typeof Wallet; inverse?: boolean }) {
+  const positive = inverse ? metric.change_percentage <= 0 : metric.change_percentage >= 0;
+  return <Card className="p-5"><div className="flex items-start justify-between"><span className="grid size-10 place-items-center rounded-xl bg-white/5 text-muted"><Icon className="size-5" /></span><span className={`flex items-center gap-1 text-xs ${positive ? "text-primary" : "text-danger"}`}>{metric.change_percentage >= 0 ? <ArrowUpRight className="size-3" /> : <ArrowDownRight className="size-3" />}{Math.abs(metric.change_percentage).toFixed(1)}%</span></div><p className="mt-6 text-sm text-muted">{title}</p><p className="mt-1 font-[family-name:var(--font-display)] text-2xl font-semibold">{money.format(Number(metric.value))}</p></Card>;
+}
+
+export function DashboardView() {
+  const dispatch = useDispatch();
+  const period = useSelector((state: RootState) => state.preferences.period);
+  const params = useMemo(() => periodParams(period), [period]);
+  const report = useQuery({ queryKey: ["report", params.toString()], queryFn: () => financeApi.report(params) });
+  if (report.isLoading) return <div className="grid gap-4"><div className="h-24 animate-pulse rounded-card bg-white/5" /><div className="h-96 animate-pulse rounded-card bg-white/5" /></div>;
+  if (report.isError || !report.data) return <Card className="p-8 text-danger">Não foi possível carregar sua visão financeira.</Card>;
+  const data: DashboardReport = report.data;
+  const chart = data.cash_flow.map((item) => ({ ...item, income: Number(item.income), expense: Number(item.expense), balance: Number(item.balance) }));
+  const principalCard = data.cards[0];
+  return <><header className="flex flex-wrap items-end justify-between gap-5"><div><p className="text-sm text-primary">Visão geral</p><h1 className="mt-2 font-[family-name:var(--font-display)] text-4xl font-semibold">Seu dinheiro, com contexto.</h1><p className="mt-2 text-muted">De {new Date(`${data.period_start}T12:00:00`).toLocaleDateString("pt-BR")} a {new Date(`${data.period_end}T12:00:00`).toLocaleDateString("pt-BR")}</p></div><div className="flex flex-wrap rounded-xl border border-white/10 bg-white/[0.03] p-1">{periods.map((item) => <button key={item.key} onClick={() => dispatch(setPeriod(item.key))} className={`rounded-lg px-3 py-2 text-xs transition ${period === item.key ? "bg-primary font-semibold text-[#172000]" : "text-muted hover:text-foreground"}`}>{item.label}</button>)}</div></header><section className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard title="Saldo patrimonial" metric={data.total_balance} icon={Wallet} /><StatCard title="Receitas" metric={data.income} icon={TrendingUp} /><StatCard title="Despesas" metric={data.expenses} icon={TrendingDown} inverse /><StatCard title="Economia" metric={data.savings} icon={PiggyBank} /></section><section className="mt-5 grid gap-5 xl:grid-cols-[1.7fr_0.8fr]"><Card className="p-6"><div className="flex items-center justify-between"><div><h2 className="text-lg font-semibold">Fluxo financeiro</h2><p className="mt-1 text-sm text-muted">Receitas e despesas no período</p></div></div><div className="mt-6 h-72"><ResponsiveContainer width="100%" height="100%"><AreaChart data={chart}><defs><linearGradient id="income" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#B7FF2A" stopOpacity={0.25}/><stop offset="95%" stopColor="#B7FF2A" stopOpacity={0}/></linearGradient></defs><CartesianGrid stroke="rgba(255,255,255,.06)" vertical={false}/><XAxis dataKey="label" stroke="#9BA1AA" fontSize={11} tickLine={false} axisLine={false}/><YAxis stroke="#9BA1AA" fontSize={11} tickLine={false} axisLine={false} width={55}/><Tooltip contentStyle={{ background: "#16191f", border: "1px solid rgba(255,255,255,.1)", borderRadius: 12 }} formatter={(value) => money.format(Number(value))}/><Area type="monotone" dataKey="income" name="Receitas" stroke="#B7FF2A" fill="url(#income)" strokeWidth={2}/><Area type="monotone" dataKey="expense" name="Despesas" stroke="#FF5D6C" fill="transparent" strokeWidth={2}/></AreaChart></ResponsiveContainer></div></Card><Card className="grid place-items-center p-7 text-center"><div><p className="text-sm text-muted">Gasto do orçamento</p><div className="mx-auto mt-6 grid size-40 place-items-center rounded-full" style={{ background: `conic-gradient(#B7FF2A ${Math.min(100, data.budget_percentage)}%, rgba(255,255,255,.08) 0)` }}><div className="grid size-28 place-items-center rounded-full bg-[#12151b]"><div><b className="text-3xl">{data.budget_percentage.toFixed(0)}%</b><p className="text-xs text-muted">utilizado</p></div></div></div><p className="mt-6 text-sm text-muted">Taxa de economia</p><p className={`mt-1 text-2xl font-semibold ${data.savings_rate >= 0 ? "text-primary" : "text-danger"}`}>{data.savings_rate.toFixed(1)}%</p></div></Card></section><section className="mt-5 grid gap-5 xl:grid-cols-3">{principalCard ? <Card className="relative overflow-hidden p-6"><div className="absolute -right-12 -top-12 size-40 rounded-full bg-primary/10 blur-3xl"/><CreditCard className="text-primary"/><p className="mt-8 text-sm text-muted">Cartão principal</p><h2 className="mt-1 text-xl font-semibold">{principalCard.name}</h2><p className="mt-7 text-xs text-muted">Limite utilizado</p><p className="mt-1 text-2xl font-semibold">{money.format(Number(principalCard.used))}</p><div className="mt-4 h-1.5 rounded-full bg-white/10"><div className="h-full rounded-full bg-primary" style={{ width: `${Math.min(100, Number(principalCard.used) / Number(principalCard.limit) * 100)}%` }}/></div></Card> : <Card className="p-6 text-muted">Cadastre um cartão para acompanhar o limite.</Card>}<Card className="p-6 xl:col-span-2"><div className="flex justify-between"><h2 className="text-lg font-semibold">Transações recentes</h2><a className="text-sm text-primary" href="/transacoes">Ver todas</a></div><div className="mt-4 divide-y divide-white/10">{data.recent_transactions.map((item) => <div key={item.id} className="flex items-center justify-between gap-4 py-4"><div><p className="text-sm font-medium">{item.description}</p><p className="mt-1 text-xs text-muted">{item.category} · {new Date(`${item.date}T12:00:00`).toLocaleDateString("pt-BR")}</p></div><b className={item.type === "income" ? "text-primary" : "text-foreground"}>{item.type === "income" ? "+" : "−"} {money.format(Number(item.amount))}</b></div>)}{!data.recent_transactions.length ? <p className="py-8 text-center text-muted">Nenhuma transação ainda.</p> : null}</div></Card></section>{data.alerts.length ? <Card className="mt-5 p-6"><h2 className="flex items-center gap-2 text-lg font-semibold"><Bell className="size-5 text-warning"/>Alertas importantes</h2><div className="mt-4 grid gap-3">{data.alerts.map((alert) => <p key={alert} className="rounded-xl bg-warning/10 p-4 text-sm text-warning">{alert}</p>)}</div></Card> : null}</>;
+}

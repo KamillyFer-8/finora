@@ -1,0 +1,3 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { EmptyState, ErrorState, Skeleton } from "./feedback";
+test("renders loading, empty and retry states", () => { const retry = jest.fn(); const { rerender } = render(<Skeleton />); expect(screen.getByLabelText("Carregando")).toBeInTheDocument(); rerender(<EmptyState title="Sem dados" description="Cadastre o primeiro item" />); expect(screen.getByText("Sem dados")).toBeInTheDocument(); rerender(<ErrorState retry={retry} />); fireEvent.click(screen.getByRole("button", { name: "Tentar novamente" })); expect(retry).toHaveBeenCalledTimes(1); });
