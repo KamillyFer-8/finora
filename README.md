@@ -169,6 +169,12 @@ O workflow usa `VERCEL_TOKEN`, `VERCEL_ORG_ID` e `VERCEL_PROJECT_ID` como secret
 - compartilhamento familiar;
 - aplicação móvel.
 
+## Desenvolvimento assistido por IA
+
+O Finora foi desenvolvido por **Kamilly Araújo** com a assistência do **OpenAI Codex** como ferramenta de apoio ao processo de desenvolvimento. A IA colaborou na implementação, revisão e documentação do projeto, sempre sob supervisão humana.
+
+As decisões de produto e arquitetura, a análise do código, a validação dos resultados e a aprovação final de cada alteração foram realizadas pela autora, que permanece responsável pelo projeto e por sua evolução.
+
 ## Autora
 
 Desenvolvido por **Kamilly Araújo** como projeto de portfólio full stack.
